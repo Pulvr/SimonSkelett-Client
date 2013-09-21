@@ -4,6 +4,7 @@ import de.hsb.simon.commons.ServerInterface;
 import de.hsb.simon.commons.SessionInterface;
 import de.root1.simon.Lookup;
 
+
 public class ClientInterfaceImpl {
 
 	private Lookup lookup;
@@ -13,4 +14,7 @@ public class ClientInterfaceImpl {
 	public ClientInterfaceImpl() {
 		//
 	}
+
 }
+
+
