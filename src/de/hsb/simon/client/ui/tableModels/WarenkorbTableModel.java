@@ -9,7 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import valueobjects.MassengutWare;
 import valueobjects.Ware;
 
-public class WarenTableModel extends DefaultTableModel {
+public class WarenkorbTableModel extends DefaultTableModel {
     private static final long serialVersionUID = 1L;
     
     private Vector<String> columnNames;
@@ -18,7 +18,7 @@ public class WarenTableModel extends DefaultTableModel {
 	private DecimalFormat df = new DecimalFormat("#,##0.00");
 
 	
-	public WarenTableModel(List<Ware> waren) {
+	public WarenkorbTableModel(Vector<Ware> waren) {
 		super();
 		
 		columnNames = new Vector<String>();
@@ -57,6 +57,7 @@ public class WarenTableModel extends DefaultTableModel {
 		}
 		setDataVector(data, columnNames);
 	}
+	
 	
 	@Override
 	/**

@@ -19,6 +19,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Comparator;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -50,6 +51,7 @@ import valueobjects.Ware;
 import de.hsb.simon.client.net.ClientInterfaceImpl;
 import de.hsb.simon.client.ui.tableModels.PersonenTableModel;
 import de.hsb.simon.client.ui.tableModels.WarenTableModel;
+import de.hsb.simon.client.ui.tableModels.WarenkorbTableModel;
 import de.hsb.simon.commons.SessionInterface;
 import de.root1.simon.exceptions.EstablishConnectionFailed;
 import de.root1.simon.exceptions.LookupFailedException;
@@ -93,6 +95,7 @@ public class SwingLagClientGUI extends JFrame {
   private JFormattedTextField packungsGroesseFeld;
   private JTable warenTable;
   private JTable personenTable;
+  private JTable warenkorbTable;
   private TableRowSorter<TableModel> personenSorter;
   private TableRowSorter<TableModel> warenSorter;
   
@@ -193,6 +196,7 @@ public class SwingLagClientGUI extends JFrame {
 	    	e.getMessage();
 	    }
 	    warenkorbButton.addActionListener(new WarenkorbListener());
+	    
 	   
 	    kaufenButton = new JButton ("KAUFEN");
 	    kaufenButton.setPreferredSize(warenkorbButton.getPreferredSize()); //damit er die gleiche größe hat wie der warenkorbButton
@@ -325,7 +329,10 @@ public class SwingLagClientGUI extends JFrame {
 	                            JOptionPane.showMessageDialog(null, "Bitte geben Sie eine gültige Menge an", "ERROR", JOptionPane.ERROR_MESSAGE);
 	                        } else if (w.getBestand() >= menge) {
 	        					try {
+	        						
+	        						
 	        						lag.inWarenKorbLegen(menge, w, user);
+	        						
 	        						warenkorbButton.setBackground(Color.RED);
 	        					} catch (BestellteMengeNegativException ex) {
 	        						JOptionPane.showMessageDialog(null, ex.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
@@ -465,6 +472,12 @@ public class SwingLagClientGUI extends JFrame {
 	  personenTable.setRowSorter(personenSorter);
   }
   
+  public void updateWarenKorbListe(java.util.Vector<Ware> warenkorb){
+	  WarenkorbTableModel wtm = (WarenkorbTableModel) warenkorbTable.getModel();
+	  wtm.updateDataVector(warenkorb);
+	  warenTableSorter(warenkorbTable);
+	  warenkorbTable.setRowSorter(warenSorter);
+  }
 
   class AddListener implements ActionListener{
 	  public void actionPerformed(ActionEvent ae) {
@@ -602,14 +615,38 @@ public class SwingLagClientGUI extends JFrame {
 			  if(getEingelogged()==false){
 				  JOptionPane.showMessageDialog(null, "Sie sind nicht eingeloggt");
 				  
-			  }else if(user.getWarenkorb().isEmpty()){
+			  }/*else if(user.getWarenkorb().isEmpty()){
 				  JOptionPane.showMessageDialog(null, "Ihr Warenkorb ist leer\n\nDoppelklicken sie auf die Ware die sie kaufen \nmöchten um sie in den Warenkorb zu legen");
 			  
-			  }else{
+			  }*/else{
 				  if(warenkorbButton.getBackground().equals(Color.RED)){
 					  warenkorbButton.setBackground(null);
 				  }
-				  JOptionPane.showMessageDialog(null, user.getWarenkorb(),"Inhalt ihres Warenkorbs", JOptionPane.PLAIN_MESSAGE);
+				  
+				  
+				  
+				  	  warenkorbTable = new JTable(new WarenkorbTableModel(user.getWarenkorb()));
+					  //warenkorbTable = new JTable(new WarenkorbTableModel(user.getWarenkorb()));
+					  //Notwendig da der JOpionPane sonst viel zu klein wäre
+					  warenkorbTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+					  warenkorbTable.getColumnModel().getColumn(0).setMinWidth(100);
+					  warenkorbTable.getColumnModel().getColumn(1).setMinWidth(100);
+					  warenkorbTable.getColumnModel().getColumn(2).setMinWidth(100);
+					  warenkorbTable.getColumnModel().getColumn(3).setMinWidth(100);
+					  warenkorbTable.getColumnModel().getColumn(4).setMinWidth(100);
+					  warenkorbTable.getColumnModel().getColumn(5).setMinWidth(100);
+					  warenkorbTable.setPreferredScrollableViewportSize(new Dimension(700,200));
+				      
+					  //Auch diese Tabelle soll sortierbar sein also ein extra TableRowSorter für diese Tabelle
+					  personenSorter = new TableRowSorter<TableModel>(warenkorbTable.getModel());
+					 
+					  //warenkorbTable.setRowSorter(warenSorter);
+					  
+					  JScrollPane warenkorbPanel = new JScrollPane(warenkorbTable);
+					  
+					  JOptionPane.showMessageDialog(null, warenkorbPanel,"Inhalt des Warenkorbs", JOptionPane.PLAIN_MESSAGE);
+					 // JOptionPane.showMessageDialog(null, user.getWarenkorb(),"Inhalt ihres Warenkorbs", JOptionPane.PLAIN_MESSAGE);
+				  
 			  }
 		  }
 	  }

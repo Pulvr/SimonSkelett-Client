@@ -2,6 +2,7 @@ package de.hsb.simon.client.net;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Vector;
 
 import valueobjects.Person;
 import valueobjects.Ware;
@@ -44,11 +45,18 @@ public class ClientInterfaceImpl implements ClientInterface{
 	@Override
 	public void erhalteAktualisiertePersonenDaten(List<Person> aktualisierteDaten) {
 		this.clientGui.updatePersonenListe(aktualisierteDaten);
+		//SPEICHERN
 	}
 	
 	@Override
 	public void erhalteAktualisierteWarenDaten(List<Ware> aktualisierteDaten) {
 		this.clientGui.updateWarenListe(aktualisierteDaten);
+		//SPEICHERN
+	}
+	
+	@Override
+	public void erhalteAktualisierteWarenkorbDaten(Vector<Ware> aktualisierterteDaten) {
+		this.clientGui.updateWarenKorbListe(aktualisierterteDaten);
 		
 	}
 	
@@ -82,6 +90,8 @@ public class ClientInterfaceImpl implements ClientInterface{
             System.err.println("Server ist nicht verfügbar!");
         }
     }
+
+	
 
 	
 }
