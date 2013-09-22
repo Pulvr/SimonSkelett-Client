@@ -16,6 +16,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Comparator;
 
@@ -24,6 +25,7 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -46,10 +48,13 @@ import valueobjects.Person;
 import valueobjects.Rechnung;
 import valueobjects.Ware;
 import de.hsb.simon.client.net.ClientInterfaceImpl;
+import de.hsb.simon.client.ui.tableModels.PersonenTableModel;
+import de.hsb.simon.client.ui.tableModels.WarenTableModel;
 import de.hsb.simon.commons.SessionInterface;
 import de.root1.simon.exceptions.EstablishConnectionFailed;
 import de.root1.simon.exceptions.LookupFailedException;
 import exceptions.BestellteMengeNegativException;
+import exceptions.NichtVielfachesVonPackGroesseException;
 import exceptions.PersonExistiertBereitsException;
 import exceptions.PersonExistiertNichtException;
 import exceptions.WareExistiertBereitsException;
@@ -67,6 +72,8 @@ public class SwingLagClientGUI extends JFrame {
   private ClientInterfaceImpl connection;
   private SessionInterface lag;
   
+  private JPanel panelLinks;
+  
   private JTextField titelFeld;
   private JTextField nummernFeld;
   private JTextField bestandsFeld;
@@ -83,6 +90,7 @@ public class SwingLagClientGUI extends JFrame {
   private JTextField suchFeld;
   private JTextField userNameInput;
   private JPasswordField passwortInput;
+  private JFormattedTextField packungsGroesseFeld;
   private JTable warenTable;
   private JTable personenTable;
   private TableRowSorter<TableModel> personenSorter;
@@ -104,7 +112,7 @@ public class SwingLagClientGUI extends JFrame {
   public SwingLagClientGUI() throws IOException {
     super("ESHOP");
     
-    // Windows-Fenster und -Buttondesign:
+   
     try {
     	connection = new ClientInterfaceImpl();
     	try {
@@ -113,7 +121,8 @@ public class SwingLagClientGUI extends JFrame {
     		// TODO Auto-generated catch block
     		e.printStackTrace();
     	}
-    		
+    	
+    	 // Windows-Fenster und -Buttondesign:
     	UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
     	SwingUtilities.updateComponentTreeUI(this);
     } catch (ClassNotFoundException|InstantiationException|IllegalAccessException|UnsupportedLookAndFeelException e) {
@@ -128,215 +137,224 @@ public class SwingLagClientGUI extends JFrame {
 
   
   private void initialize() {
-    
-    // Größe des Fensters festlegen
-    setSize(new Dimension(800, 480));
-    setLayout(new BorderLayout());
-    
-    //Bevor das Programm geschlossen wird, fragt das Programm ob die Änderungen gespeichert werden sollen
-    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-    this.addWindowListener(new WindowAdapter(){
-    	public void windowClosing(WindowEvent we){
-    		int result = JOptionPane.showConfirmDialog(null, "Möchten sie speichern bevor sie beenden?", "Speichern?", JOptionPane.YES_NO_CANCEL_OPTION);
-    		if (result == JOptionPane.YES_OPTION){
-    			try{
-    				lag.schreibePersonen();
-    				lag.schreibeWaren();
-    				dispose();
-    			}catch (IOException e){
-    				System.out.println(e.getMessage());
-    			}
-    		}else if (result == JOptionPane.NO_OPTION){
-    			dispose();
-    		}
-    	}
-    });
-    
-    // PANEL OBEN
-    // PANEL OBEN
-    // PANEL OBEN
-    
-    JPanel panelOben = new JPanel();
-    panelOben.setLayout(new GridLayout(1, 5));
-    
-    // Warensuch-Eingabefeld und Suchen-Button
-    suchFeld = new JTextField();
-    suchFeld.setToolTipText("Hier bitte Suchbegriff eingeben.");  // Ausgabe, wenn Maus über Eingabefeld bleibt
-    suchFeld.setPreferredSize(new Dimension(100,13));
-    suchButton = new JButton("Suchen");
-    suchButton.addActionListener(new SearchListener());
-    panelOben.add(new JLabel()); // Abstandhalter
-    panelOben.add(new JLabel("Suchbegriff: "));
-    panelOben.add(suchFeld);
-    panelOben.add(new JLabel()); // Abstandhalter
-    panelOben.add(suchButton);
-    panelOben.setBorder(BorderFactory.createTitledBorder("Warensuche")); // Umrandung mit dem Titel "Suche"
-    
-    //PANEL UNTEN
-    //PANEL UNTEN
-    //PANEL UNTEN
-    
-    JPanel panelUnten = new JPanel();
-    panelOben.setLayout(new GridLayout(1, 5));
-    
-    //WarenkorbButton mit passendem Warenkorb als Bild
-    warenkorbButton = new JButton("Warenkorb");
-    try{
-    	Image img = ImageIO.read(getClass().getResource("/resources/warenkorb.png"));
-    	warenkorbButton.setIcon(new ImageIcon(img));
-    }catch(IOException e){
-    	e.getMessage();
-    }
-    warenkorbButton.addActionListener(new WarenkorbListener());
-   
-    kaufenButton = new JButton ("KAUFEN");
-    kaufenButton.setPreferredSize(warenkorbButton.getPreferredSize()); //damit er die gleiche größe hat wie der warenkorbButton
-    kaufenButton.addActionListener(new KaufenListener());
-    
-    panelUnten.add(warenkorbButton);
-    panelUnten.add(kaufenButton);
-    panelUnten.setBorder(BorderFactory.createTitledBorder("Warenkorb"));
-    
-    // PANEL RECHTS
-    // PANEL RECHTS
-    // PANEL RECHTS
-    
-    JPanel panelRechts = new JPanel();
-    panelRechts.setLayout(new GridLayout(11, 1));
-    
-    // UserName-Eingabefeld
-    userNameInput = new JTextField();
-    userNameInput.setToolTipText("Hier bitte UserNamen eingeben.");
-    panelRechts.add(new JLabel("UserName : "));
-    panelRechts.add(userNameInput);
-    
-    // Passwort-Eingabe mit Keyadapter damit man im passwort Feld enter drücken kann zum einloggen
-    passwortInput = new JPasswordField();
-    passwortInput.addKeyListener(new KeyAdapter(){
-    	public void keyPressed(KeyEvent e){
-    		int key = e.getKeyCode();
-    		if (key == KeyEvent.VK_ENTER){
-    			passwortInput.addActionListener(new LoginListener());
-    		}
-    	}
-    });
-    panelRechts.add(new JLabel("Passwort: "));
-    panelRechts.add(passwortInput);
-    
-    panelRechts.add(new JLabel()); // Abstandhalter
-    
-    // Einloggen-Button
-    loginButton = new JButton("Einloggen");
-    loginButton.addActionListener(new LoginListener()); 
-    panelRechts.add(loginButton);
-    
-    panelRechts.add(new JLabel()); // Abstandhalter
-    panelRechts.add(new JLabel("Eingeloggt als:")); // Abstandhalter
-    userLabel = new JLabel(" nicht eingeloggt ");
-    userLabel.setBorder(BorderFactory.createLineBorder(Color.gray));
-    panelRechts.add(userLabel);
-    panelRechts.add(new JLabel()); // Abstandhalter
-    
-    // Ausloggen-Button
-    logoutButton = new JButton("Ausloggen");
-    logoutButton.addActionListener(new LogoutListener());
-    //wird erst wieder sichtbar wenn sich eine Person einloggt
-    logoutButton.setVisible(false);
-    panelRechts.add(logoutButton);
+	// Größe des Fensters festlegen
+	    setSize(new Dimension(800, 480));
+	    setLayout(new BorderLayout());
+	    
+	    //Bevor das Programm geschlossen wird, fragt das Programm ob die Änderungen gespeichert werden sollen
+	    setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+	    this.addWindowListener(new WindowAdapter(){
+	    	public void windowClosing(WindowEvent we){
+	    		try {
+	    			
+					lag.schreibePersonen();
+					lag.schreibeWaren();
+					connection.unreferenced();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    	}
+	    });
+	    
+	    // PANEL OBEN
+	    // PANEL OBEN
+	    // PANEL OBEN
+	    
+	    JPanel panelOben = new JPanel();
+	    panelOben.setLayout(new GridLayout(1, 5));
+	    
+	    // Warensuch-Eingabefeld und Suchen-Button
+	    suchFeld = new JTextField();
+	    suchFeld.setToolTipText("Hier bitte Suchbegriff eingeben.");  // Ausgabe, wenn Maus über Eingabefeld bleibt
+	    suchFeld.setPreferredSize(new Dimension(100,13));
+	    suchButton = new JButton("Suchen");
+	    suchButton.addActionListener(new SearchListener());
+	    panelOben.add(new JLabel()); // Abstandhalter
+	    panelOben.add(new JLabel("Suchbegriff: "));
+	    panelOben.add(suchFeld);
+	    panelOben.add(new JLabel()); // Abstandhalter
+	    panelOben.add(suchButton);
+	    panelOben.setBorder(BorderFactory.createTitledBorder("Warensuche")); // Umrandung mit dem Titel "Suche"
+	    
+	    //PANEL UNTEN
+	    //PANEL UNTEN
+	    //PANEL UNTEN
+	    
+	    JPanel panelUnten = new JPanel();
+	    panelOben.setLayout(new GridLayout(1, 5));
+	    
+	    //WarenkorbButton mit passendem Warenkorb als Bild
+	    warenkorbButton = new JButton("Warenkorb");
+	    try{
+	    	Image img = ImageIO.read(getClass().getResource("/resources/warenkorb.png"));
+	    	warenkorbButton.setIcon(new ImageIcon(img));
+	    }catch(IOException e){
+	    	e.getMessage();
+	    }
+	    warenkorbButton.addActionListener(new WarenkorbListener());
+	   
+	    kaufenButton = new JButton ("KAUFEN");
+	    kaufenButton.setPreferredSize(warenkorbButton.getPreferredSize()); //damit er die gleiche größe hat wie der warenkorbButton
+	    kaufenButton.addActionListener(new KaufenListener());
+	    
+	    panelUnten.add(warenkorbButton);
+	    panelUnten.add(kaufenButton);
+	    panelUnten.setBorder(BorderFactory.createTitledBorder("Warenkorb"));
+	    
+	    // PANEL RECHTS
+	    // PANEL RECHTS
+	    // PANEL RECHTS
+	    
+	    JPanel panelRechts = new JPanel();
+	    panelRechts.setLayout(new GridLayout(11, 1));
+	    
+	    // UserName-Eingabefeld
+	    userNameInput = new JTextField();
+	    userNameInput.setToolTipText("Hier bitte UserNamen eingeben.");
+	    panelRechts.add(new JLabel("UserName : "));
+	    panelRechts.add(userNameInput);
+	    
+	    // Passwort-Eingabe mit Keyadapter damit man im passwort Feld enter drücken kann zum einloggen
+	    passwortInput = new JPasswordField();
+	    passwortInput.addKeyListener(new KeyAdapter(){
+	    	public void keyPressed(KeyEvent e){
+	    		int key = e.getKeyCode();
+	    		if (key == KeyEvent.VK_ENTER && getEingelogged()==false){
+	    			passwortInput.addActionListener(new LoginListener());
+	    		}
+	    	}
+	    });
+	    panelRechts.add(new JLabel("Passwort: "));
+	    panelRechts.add(passwortInput);
+	    
+	    panelRechts.add(new JLabel()); // Abstandhalter
+	    
+	    // Einloggen-Button
+	    loginButton = new JButton("Einloggen");
+	    loginButton.addActionListener(new LoginListener()); 
+	    panelRechts.add(loginButton);
+	    
+	    panelRechts.add(new JLabel()); // Abstandhalter
+	    panelRechts.add(new JLabel("Eingeloggt als:")); // Abstandhalter
+	    userLabel = new JLabel(" nicht eingeloggt ");
+	    userLabel.setBorder(BorderFactory.createLineBorder(Color.gray));
+	    panelRechts.add(userLabel);
+	    panelRechts.add(new JLabel()); // Abstandhalter
+	    
+	    // Ausloggen-Button
+	    logoutButton = new JButton("Ausloggen");
+	    logoutButton.addActionListener(new LogoutListener());
+	    //wird erst wieder sichtbar wenn sich eine Person einloggt
+	    logoutButton.setVisible(false);
+	    panelRechts.add(logoutButton);
 
 
-    panelRechts.setBorder(BorderFactory.createTitledBorder("User"));
+	    panelRechts.setBorder(BorderFactory.createTitledBorder("User"));
 
-    // PANEL LINKS
-    // PANEL LINKS
-    // PANEL LINKS
-    
-    JPanel panelLinks = new JPanel();
-    panelLinks.setLayout(new GridLayout(11, 1));
-    
-    // Eingabe-Felder für Nummer, Titel, Bestand und Preis der Ware
-    panelLinks.add(new JLabel("Nummer: "));
-    nummernFeld = new JTextField();
-    panelLinks.add(nummernFeld);
-    panelLinks.add(new JLabel("Titel: "));
-    titelFeld = new JTextField();
-    panelLinks.add(titelFeld);
-    panelLinks.add(new JLabel("Bestand: "));
-    bestandsFeld = new JTextField();
-    panelLinks.add(bestandsFeld);
-    panelLinks.add(new JLabel("Preis: "));
-    preisFeld = new JTextField();
-    
-    panelLinks.add(preisFeld);
-    
-    panelLinks.add(new JLabel());   // Abstandshalter
-    
-    addButton = new JButton("Einfügen");
-    addButton.addActionListener(new AddListener());
-    //addButton.setPreferredSize(new Dimension(83,12));
-    panelLinks.add(addButton);  
-    
-    panelLinks.setBorder(BorderFactory.createTitledBorder("Einfügen"));
-    
-    
-    // PANEL MITTE
-    // PANEL MITTE
-    // PANEL MITTE
-    
-    warenTable = new JTable(new WarenTableModel(lag.gibAlleWaren()));
-    // ein TableRowsorter damit der Inhalt der Tabelle korrekt sortiert werden kann
-    warenTableSorter(warenTable);
-    warenTable.setRowSorter(warenSorter);
-    
-    //ein Mouselistener um auf Doppelklicks zu reagieren
-    warenTable.addMouseListener(new MouseAdapter(){
-    	public void mouseClicked(MouseEvent e){
-    		if (e.getClickCount()==2){
-    			JTable target = (JTable)e.getSource();
-    			int row = target.getSelectedRow();
-    			int column = target.getSelectedColumn();
-    			java.util.HashMap<String,Ware> waren = lag.getMeineWarenVerwaltung();
-    			if(getEingelogged()==false){
-    				JOptionPane.showMessageDialog(null, "Loggen Sie sich bitte zuerst ein!");
-    			}else{
-    				if(column==1){
-    					//getValueAt(row,1) die 1 damit er immer die bezeichnung nimmt und keinen Nullpointer wirft
-    					Ware w = waren.get(warenTable.getValueAt(row, 1));
-    					String mengenString = JOptionPane.showInputDialog("Wieviele von : \""+w.getBezeichnung()+"\" wollen sie bestellen");
-    					int menge = Integer.parseInt(mengenString);
-    				if(w.getBestand()>= menge)
-    					try {
-    						lag.inWarenKorbLegen(menge, w, user);
-    						warenkorbButton.setBackground(Color.RED);
-    						
-    					} catch (BestellteMengeNegativException e1) {
-    						JOptionPane.showMessageDialog(null, "Die Menge darf nicht negativ sein!","ERROR",JOptionPane.ERROR_MESSAGE);
-    						
-    					}else{
-    						JOptionPane.showMessageDialog(null, "Ihre Anfrage übersteigt den vorhandenen Bestand","ERROR",JOptionPane.ERROR_MESSAGE);
-    					}
-    				}else if(column==2){
-    					
-    				}
-    			}
-    		}
-    	}
-    });
-    
-    JScrollPane panelMitte = new JScrollPane(warenTable);
-    
-    // Inhalt des Frames
-    add(panelOben, BorderLayout.NORTH);
-    add(panelLinks, BorderLayout.WEST);
-    add(panelMitte, BorderLayout.CENTER);
-    add(panelRechts, BorderLayout.EAST);
-    add(panelUnten, BorderLayout.SOUTH);
-    this.setResizable(false);
-   
-    // Menu aufbauen
-    initMenu();
-    
-    setVisible(true);
+	    // PANEL LINKS
+	    // PANEL LINKS
+	    // PANEL LINKS
+	    
+	    panelLinks = new JPanel();
+	    panelLinks.setLayout(new GridLayout(12, 1));
+	    // Panel ausblenden bis der Benutzer sich eingeloggt hat
+	    panelLinks.setVisible(false);
+	    
+	    // Eingabe-Felder für Nummer, Titel, Bestand und Preis der Ware
+	    panelLinks.add(new JLabel("Nummer:"));
+	    nummernFeld = new JTextField();
+	    panelLinks.add(nummernFeld);
+	    panelLinks.add(new JLabel("Titel:"));
+	    titelFeld = new JTextField();
+	    panelLinks.add(titelFeld);
+	    panelLinks.add(new JLabel("Bestand:"));
+	    bestandsFeld = new JTextField();
+	    panelLinks.add(bestandsFeld);
+	    panelLinks.add(new JLabel("Preis:"));
+	    preisFeld = new JTextField();
+	    panelLinks.add(preisFeld);
+	    
+	    panelLinks.add(new JLabel("Pack.Größe:"));
+	    // JFormattedTextField mit NumberFormat für Ganzzahlen benutzen um zu verhindern, dass Buchstaben akzeptiert wird.
+	    packungsGroesseFeld = new JFormattedTextField(NumberFormat.getIntegerInstance());
+	    packungsGroesseFeld.setText("1");
+	    panelLinks.add(packungsGroesseFeld);
+	    
+	    panelLinks.add(new JLabel());   // Abstandshalter
+	    
+	    addButton = new JButton("Einfügen");
+	    addButton.addActionListener(new AddListener());
+	    //addButton.setPreferredSize(new Dimension(83,12));
+	    panelLinks.add(addButton);  
+	    
+	    panelLinks.setBorder(BorderFactory.createTitledBorder("Einfügen"));
+	    
+	    
+	    // PANEL MITTE
+	    // PANEL MITTE
+	    // PANEL MITTE
+	    
+	    warenTable = new JTable(new WarenTableModel(lag.gibAlleWaren()));
+	    // ein TableRowsorter damit der Inhalt der Tabelle korrekt sortiert werden kann
+	    warenTableSorter(warenTable);
+	    warenTable.setRowSorter(warenSorter);
+	    
+	    //ein Mouselistener um auf Doppelklicks zu reagieren
+	    warenTable.addMouseListener(new MouseAdapter(){
+	    	public void mouseClicked(MouseEvent e){
+	    		if (e.getClickCount()==2){
+	    			JTable target = (JTable)e.getSource();
+	    			int row = target.getSelectedRow();
+	    			int column = target.getSelectedColumn();
+	    			java.util.HashMap<String,Ware> waren = lag.getMeineWarenVerwaltung();
+	    			if (getEingelogged() == false) {
+	    				JOptionPane.showMessageDialog(null, "Loggen Sie sich bitte zuerst ein!");
+	    			} else {
+	    				if (column == 1) {
+	    					//getValueAt(row,1) die 1 damit er immer die bezeichnung nimmt und keinen Nullpointer wirft
+	    					Ware w = waren.get(warenTable.getValueAt(row, 1));
+	    					String mengenString = JOptionPane.showInputDialog("Wieviele von : \"" + w.getBezeichnung() + "\" wollen sie bestellen");
+	    					int menge = 0;
+	    					try {
+	    					    menge = Integer.parseInt(mengenString);
+	    					} catch (NumberFormatException ex) {
+	    					    ex.printStackTrace();
+	    					}
+	                        if(menge == 0) {
+	                            JOptionPane.showMessageDialog(null, "Bitte geben Sie eine gültige Menge an", "ERROR", JOptionPane.ERROR_MESSAGE);
+	                        } else if (w.getBestand() >= menge) {
+	        					try {
+	        						lag.inWarenKorbLegen(menge, w, user);
+	        						warenkorbButton.setBackground(Color.RED);
+	        					} catch (BestellteMengeNegativException ex) {
+	        						JOptionPane.showMessageDialog(null, ex.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+	        					}catch (NichtVielfachesVonPackGroesseException e1){
+	        						JOptionPane.showMessageDialog(null, e1.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+	        					}
+	                        } else {
+	                            JOptionPane.showMessageDialog(null, "Ihre Anfrage übersteigt den vorhandenen Bestand", "ERROR", JOptionPane.ERROR_MESSAGE);
+	                        }
+	                    }
+	    			}
+	    		}
+	    	}
+	    });
+	    
+	    JScrollPane panelMitte = new JScrollPane(warenTable);
+	    
+	    // Inhalt des Frames
+	    add(panelOben, BorderLayout.NORTH);
+	    add(panelLinks, BorderLayout.WEST);
+	    add(panelMitte, BorderLayout.CENTER);
+	    add(panelRechts, BorderLayout.EAST);
+	    add(panelUnten, BorderLayout.SOUTH);
+	    this.setResizable(false);
+	   
+	    // Menu aufbauen
+	    initMenu();
+	    
+	    setVisible(true);
   }
   /**
    * Nimmt die waranTabe und macht die Spalten sortierbar
@@ -371,6 +389,35 @@ public class SwingLagClientGUI extends JFrame {
 				  return 0;
 			  } catch (ParseException e) {
 				  e.printStackTrace();
+				  return 0;
+			  }
+		  }
+	  });
+	  warenSorter.setComparator(4,new Comparator<String>() {
+		  public int compare (String s1, String s2)
+		  {
+			  try{
+				  int i1 = Integer.parseInt(s1), i2 = Integer.parseInt(s2);
+				  return i1 - i2;
+			  }catch(NumberFormatException e){
+				  return 0;
+			  }
+		  }
+	  });
+	  
+	  warenSorter.setComparator(5,new Comparator<String>() {
+		  public int compare (String s1, String s2)
+		  {
+			  try {
+				  DecimalFormat df = new DecimalFormat("#,##0.00");
+				  Number f1 = df.parse(s1);
+				  Number f2 = df.parse(s2);
+				  if(f1.floatValue() < f2.floatValue() || f1.floatValue() > f2.floatValue() ){
+					  return f1.floatValue() < f2.floatValue() ? -1 : 1;
+				  }
+				  return 0;
+			  } catch (ParseException e) {
+				  //e.printStackTrace();
 				  return 0;
 			  }
 		  }
@@ -416,7 +463,6 @@ public class SwingLagClientGUI extends JFrame {
 	  ptm.updateDataVector(personen);
 	  personenTableSorter(personenTable);
 	  personenTable.setRowSorter(personenSorter);
-	  
   }
   
 
@@ -426,6 +472,7 @@ public class SwingLagClientGUI extends JFrame {
 	        String titel = titelFeld.getText();
 	        String bestandsString = bestandsFeld.getText();
 	        String preisString = preisFeld.getText();
+	        String packungsGroesseString = packungsGroesseFeld.getText();
 	        
 	        if(nummernString.equals("")||titel.equals("")||bestandsString.equals("")||preisString.equals("")){
 	        	JOptionPane.showMessageDialog(null, "Alle Felder müssen ausgefüllt sein!");
@@ -436,18 +483,20 @@ public class SwingLagClientGUI extends JFrame {
 	        		String realBestandsString = bestandsString.replace("-", "");
 	        		int nummer = Integer.parseInt(realNummernString);
 	        		int bestand = Integer.parseInt(realBestandsString);
+	        		int packungsGroesse = Integer.valueOf(packungsGroesseString);
 	            
 	        		//wenn der String ein Komma findet wird es mit einem Punkt ersetzt da sonst eine NumberformatException geworfen wird
 	        		String realPreisString = preisString.replace(",",".");
 	        		String finalPreisString = realPreisString.replace("-", "");
 	            
 		            float preis = Float.valueOf(finalPreisString);
-		            lag.fuegeWareEin(titel, nummer, bestand, preis);
+		            lag.fuegeWareEin(titel, nummer, bestand, preis, packungsGroesse);
 		            updateWarenListe(lag.gibAlleWaren());
 		            nummernFeld.setText("");
 		            titelFeld.setText("");
 		            bestandsFeld.setText("");
 		            preisFeld.setText("");
+		            packungsGroesseFeld.setText("1");
 		            
 	        	} catch (WareExistiertBereitsException|NumberFormatException e) {
 	        		JOptionPane.showMessageDialog(null, "Nummer, Bestand und Preis müssen aus Zahlen bestehen");
@@ -460,6 +509,7 @@ public class SwingLagClientGUI extends JFrame {
 	        }
 	  }
   }
+  
   
   class SearchListener implements ActionListener {
     @Override
@@ -503,6 +553,7 @@ public class SwingLagClientGUI extends JFrame {
         		
     			   bestandsItem.setVisible(true);
     			   delWareItem.setVisible(true);
+    			   panelLinks.setVisible(true);
     		   }
     		   logoutItem.setVisible(true);
     		   logoutButton.setVisible(true);
@@ -534,6 +585,7 @@ public class SwingLagClientGUI extends JFrame {
 		        	  
 		        	  bestandsItem.setVisible(false);
 		        	  delUserItem.setVisible(false);
+		        	  panelLinks.setVisible(false);
 		        	  
 		        	  logoutItem.setVisible(false);
 					  logoutButton.setVisible(false);
@@ -628,7 +680,7 @@ public class SwingLagClientGUI extends JFrame {
 		  delUserItem.addActionListener(this);
 		  
 		  allUsersItem = new JMenuItem("Alle User ausgeben");
-		  allUsersItem.setVisible(true);
+		  allUsersItem.setVisible(false);
 		  add(allUsersItem);
 		  allUsersItem.addActionListener(this);
 		  
@@ -722,6 +774,7 @@ public class SwingLagClientGUI extends JFrame {
 					  String userName = JOptionPane.showInputDialog(null, "Geben sie den UserNamen der zu entfernenden Person ein",JOptionPane.OK_CANCEL_OPTION);
 					  if(userName!= null){
 						  lag.personEntfernen(lag.getMeinePersonenVerwaltung().get(userName));
+						  
 						  JOptionPane.showMessageDialog(null, "Erfolgreich gelöscht");
 					  }
 				  } catch (PersonExistiertNichtException e) {

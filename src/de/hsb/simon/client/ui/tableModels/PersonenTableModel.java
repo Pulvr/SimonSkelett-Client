@@ -1,4 +1,4 @@
-package de.hsb.simon.client.ui.gui;
+package de.hsb.simon.client.ui.tableModels;
 
 import java.util.List;
 import java.util.Vector;

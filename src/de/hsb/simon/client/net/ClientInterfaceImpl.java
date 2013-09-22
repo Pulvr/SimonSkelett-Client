@@ -6,7 +6,7 @@ import java.util.List;
 import valueobjects.Person;
 import valueobjects.Ware;
 import de.hsb.simon.client.ui.gui.SwingLagClientGUI;
-import de.hsb.simon.client.ui.gui.WarenTableModel;
+import de.hsb.simon.client.ui.tableModels.WarenTableModel;
 import de.hsb.simon.commons.ClientInterface;
 import de.hsb.simon.commons.ServerInterface;
 import de.hsb.simon.commons.SessionInterface;
